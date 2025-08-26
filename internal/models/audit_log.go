@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,4 +89,34 @@ type CreateAuditLogRequest struct {
 	UserID     *uuid.UUID `json:"user_id,omitempty"`
 	IPAddress  string     `json:"ip_address,omitempty"`
 	UserAgent  string     `json:"user_agent,omitempty"`
+}
+
+// JSON Marshaling/Unmarshaling methods for AuditLog
+
+// ToJSON converts audit log to JSON string
+func (a *AuditLog) ToJSON() (string, error) {
+	jsonData, err := json.Marshal(a.ToResponse())
+	if err != nil {
+		return "", err
+	}
+	return string(jsonData), nil
+}
+
+// FromJSON creates audit log from JSON string
+func (a *AuditLog) FromJSON(jsonStr string) error {
+	return json.Unmarshal([]byte(jsonStr), a)
+}
+
+// ToJSON converts audit log request to JSON string
+func (req *CreateAuditLogRequest) ToJSON() (string, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonData), nil
+}
+
+// FromJSON creates audit log request from JSON string
+func (req *CreateAuditLogRequest) FromJSON(jsonStr string) error {
+	return json.Unmarshal([]byte(jsonStr), req)
 }
