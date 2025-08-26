@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/barannkoca/banking-backend/config"
+	"github.com/barannkoca/banking-backend/internal/api"
 	"github.com/barannkoca/banking-backend/internal/database"
 	"github.com/barannkoca/banking-backend/pkg/graceful"
 	"github.com/barannkoca/banking-backend/pkg/logger"
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -54,12 +54,8 @@ func main() {
 		)
 	}
 
-	// Initialize Gin router
-	r := gin.New()
-
-	// Add middleware
-	r.Use(gin.Recovery())
-	r.Use(gin.Logger())
+	// Initialize custom router with all middleware
+	r := api.SetupRouter()
 
 	// Create HTTP server
 	server := &http.Server{

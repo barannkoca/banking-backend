@@ -11,10 +11,12 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Database DatabaseConfig
-	Server   ServerConfig
-	JWT      JWTConfig
-	App      AppConfig
+	Database  DatabaseConfig
+	Server    ServerConfig
+	JWT       JWTConfig
+	App       AppConfig
+	RateLimit RateLimitConfig
+	Security  SecurityConfig
 }
 
 // DatabaseConfig holds database configuration
@@ -42,6 +44,24 @@ type JWTConfig struct {
 type AppConfig struct {
 	Environment string
 	LogLevel    string
+}
+
+// RateLimitConfig holds rate limiting configuration
+type RateLimitConfig struct {
+	GlobalRequestsPerSecond  float64
+	GlobalBurst              int
+	AuthRequestsPerSecond    float64
+	AuthBurst                int
+	BankingRequestsPerSecond float64
+	BankingBurst             int
+}
+
+// SecurityConfig holds security configuration
+type SecurityConfig struct {
+	AllowedOrigins []string
+	TrustedProxies []string
+	EnableHSTS     bool
+	EnableCSP      bool
 }
 
 var cfg *Config
@@ -72,6 +92,20 @@ func Load() (*Config, error) {
 		App: AppConfig{
 			Environment: getEnv("ENVIRONMENT", "development"),
 			LogLevel:    getEnv("LOG_LEVEL", "info"),
+		},
+		RateLimit: RateLimitConfig{
+			GlobalRequestsPerSecond:  getEnvAsFloat("RATE_LIMIT_GLOBAL_RPS", 10.0),
+			GlobalBurst:              getEnvAsInt("RATE_LIMIT_GLOBAL_BURST", 20),
+			AuthRequestsPerSecond:    getEnvAsFloat("RATE_LIMIT_AUTH_RPS", 1.0),
+			AuthBurst:                getEnvAsInt("RATE_LIMIT_AUTH_BURST", 3),
+			BankingRequestsPerSecond: getEnvAsFloat("RATE_LIMIT_BANKING_RPS", 5.0),
+			BankingBurst:             getEnvAsInt("RATE_LIMIT_BANKING_BURST", 10),
+		},
+		Security: SecurityConfig{
+			AllowedOrigins: []string{"http://localhost:3000", "https://banking-frontend.com"},
+			TrustedProxies: []string{"127.0.0.1", "::1"},
+			EnableHSTS:     getEnvAsBool("ENABLE_HSTS", true),
+			EnableCSP:      getEnvAsBool("ENABLE_CSP", true),
 		},
 	}
 
@@ -164,6 +198,16 @@ func getEnvAsBool(key string, fallback bool) bool {
 	if value := os.Getenv(key); value != "" {
 		if boolVal, err := strconv.ParseBool(value); err == nil {
 			return boolVal
+		}
+	}
+	return fallback
+}
+
+// getEnvAsFloat gets environment variable as float64 with fallback
+func getEnvAsFloat(key string, fallback float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatVal
 		}
 	}
 	return fallback

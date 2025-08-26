@@ -93,6 +93,21 @@ cd banking-backend
 go mod tidy
 ```
 
+3. **Projeyi derleyin:**
+```bash
+go build -o bin/banking-backend cmd/server/main.go
+```
+
+4. **HTTP Server Setup'ı test edin:**
+```bash
+./scripts/test_http_setup.sh
+```
+
+5. **API Endpoints'leri test edin:**
+```bash
+./scripts/test_api_endpoints.sh
+```
+
 **Ana Dependencies:**
 ```bash
 # Core Framework
@@ -129,6 +144,49 @@ go run cmd/server/main.go
 ## 📝 API Dokümantasyonu
 
 API dokümantasyonu `docs/` klasöründe bulunur. Swagger UI için `/docs` endpoint'ini ziyaret edin.
+
+### 🚀 HTTP Server Setup
+
+HTTP Server Setup implementasyonu tamamlanmıştır. Detaylar için `docs/HTTP_SERVER_SETUP.md` dosyasını inceleyin.
+
+**Implement edilen özellikler:**
+- ✅ Custom Router with Middleware Support
+- ✅ CORS and Security Headers
+- ✅ Rate Limiting
+- ✅ Request Logging and Tracking
+- ✅ Authentication and Authorization
+- ✅ Role-based Access Control
+- ✅ Performance Monitoring
+- ✅ Security Logging
+
+### 📡 API Endpoints
+
+API endpoint'leri implement edilmiştir. Detaylar için `docs/API_ENDPOINTS.md` dosyasını inceleyin.
+
+**Implement edilen endpoint'ler:**
+
+#### 🔐 Authentication Endpoints
+- `POST /api/v1/auth/register` - Kullanıcı kaydı
+- `POST /api/v1/auth/login` - Kullanıcı girişi
+- `POST /api/v1/auth/refresh` - Token yenileme
+
+#### 👥 User Management Endpoints
+- `GET /api/v1/users` - Tüm kullanıcıları listele
+- `GET /api/v1/users/{id}` - Kullanıcı bilgilerini getir
+- `PUT /api/v1/users/{id}` - Kullanıcı bilgilerini güncelle
+- `DELETE /api/v1/users/{id}` - Kullanıcı hesabını sil
+
+#### 💰 Transaction Endpoints
+- `POST /api/v1/transactions/credit` - Kredi işlemi
+- `POST /api/v1/transactions/debit` - Borç işlemi
+- `POST /api/v1/transactions/transfer` - Transfer işlemi
+- `GET /api/v1/transactions/history` - İşlem geçmişi
+- `GET /api/v1/transactions/{id}` - İşlem detayları
+
+#### 💳 Balance Endpoints
+- `GET /api/v1/balances/current` - Mevcut bakiye
+- `GET /api/v1/balances/historical` - Geçmiş bakiye
+- `GET /api/v1/balances/at-time` - Belirli zamandaki bakiye
 
 ## 🤝 Katkıda Bulunma
 
