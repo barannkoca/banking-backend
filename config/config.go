@@ -77,8 +77,8 @@ func Load() (*Config, error) {
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
+			User:     getEnv("DB_USER", "barankoca"),
+			Password: getEnv("DB_PASSWORD", ""),
 			DBName:   getEnv("DB_NAME", "banking_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
@@ -127,6 +127,17 @@ func Get() *Config {
 
 // GetDatabaseDSN returns the database connection string
 func (c *Config) GetDatabaseDSN() string {
+	// Use simpler DSN format without empty password
+	if c.Database.Password == "" {
+		return fmt.Sprintf("host=%s user=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
+			c.Database.Host,
+			c.Database.User,
+			c.Database.DBName,
+			c.Database.Port,
+			c.Database.SSLMode,
+		)
+	}
+
 	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
 		c.Database.Host,
 		c.Database.User,

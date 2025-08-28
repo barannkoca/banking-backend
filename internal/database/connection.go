@@ -20,6 +20,11 @@ func InitDatabase() error {
 	cfg := config.Get()
 	dsn := cfg.GetDatabaseDSN()
 
+	// Debug: Print DSN (without password for security)
+	fmt.Printf("Connecting to database with user: %s, host: %s, port: %s, dbname: %s\n",
+		cfg.Database.User, cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
+	fmt.Printf("Full DSN: %s\n", dsn)
+
 	// Configure GORM logger
 	gormLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),

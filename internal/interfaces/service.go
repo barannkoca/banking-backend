@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"time"
 
 	"github.com/barannkoca/banking-backend/internal/models"
 	"github.com/google/uuid"
@@ -140,6 +141,15 @@ type CacheService interface {
 	CacheTransaction(ctx context.Context, transaction *models.Transaction, ttl int) error
 	GetCachedTransaction(ctx context.Context, transactionID uuid.UUID) (*models.Transaction, error)
 	InvalidateTransactionCache(ctx context.Context, transactionID uuid.UUID) error
+
+	// Transaction list operations
+	GetUserTransactions(ctx context.Context, userID string, limit, offset int) ([]interface{}, error)
+	SetUserTransactions(ctx context.Context, userID string, transactions []interface{}, expiration time.Duration) error
+	InvalidateUserTransactions(ctx context.Context, userID string) error
+
+	// Transaction list operations
+	GetTransactions(ctx context.Context, cacheKey string) ([]*models.Transaction, error)
+	SetTransactions(ctx context.Context, cacheKey string, transactions []*models.Transaction, expiration time.Duration) error
 }
 
 // ValidationService defines the interface for data validation operations

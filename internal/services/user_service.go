@@ -95,8 +95,10 @@ func (us *UserService) CreateUser(ctx context.Context, req *models.UserCreateReq
 	}
 
 	// Log audit trail
-	us.auditService.LogUserActivity(ctx, user.ID, "USER_CREATED", "user", user.ID.String(),
-		fmt.Sprintf("User created with role: %s", user.Role))
+	if us.auditService != nil {
+		us.auditService.LogUserActivity(ctx, user.ID, "USER_CREATED", "user", user.ID.String(),
+			fmt.Sprintf("User created with role: %s", user.Role))
+	}
 
 	return user, nil
 }
@@ -150,8 +152,10 @@ func (us *UserService) UpdateUser(ctx context.Context, user *models.User) error 
 	}
 
 	// Log audit trail
-	us.auditService.LogUserActivity(ctx, user.ID, "USER_UPDATED", "user", user.ID.String(),
-		fmt.Sprintf("User updated from role %s to %s", existingUser.Role, user.Role))
+	if us.auditService != nil {
+		us.auditService.LogUserActivity(ctx, user.ID, "USER_UPDATED", "user", user.ID.String(),
+			fmt.Sprintf("User updated from role %s to %s", existingUser.Role, user.Role))
+	}
 
 	return nil
 }
@@ -170,8 +174,10 @@ func (us *UserService) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	}
 
 	// Log audit trail
-	us.auditService.LogUserActivity(ctx, user.ID, "USER_DELETED", "user", user.ID.String(),
-		fmt.Sprintf("User deleted with role: %s", user.Role))
+	if us.auditService != nil {
+		us.auditService.LogUserActivity(ctx, user.ID, "USER_DELETED", "user", user.ID.String(),
+			fmt.Sprintf("User deleted with role: %s", user.Role))
+	}
 
 	return nil
 }
@@ -209,8 +215,10 @@ func (us *UserService) UpdateUserRole(ctx context.Context, userID uuid.UUID, rol
 	}
 
 	// Log audit trail
-	us.auditService.LogUserActivity(ctx, userID, "ROLE_UPDATED", "user", userID.String(),
-		fmt.Sprintf("User role updated from %s to %s", oldRole, role))
+	if us.auditService != nil {
+		us.auditService.LogUserActivity(ctx, userID, "ROLE_UPDATED", "user", userID.String(),
+			fmt.Sprintf("User role updated from %s to %s", oldRole, role))
+	}
 
 	return nil
 }
@@ -266,7 +274,9 @@ func (us *UserService) AuthenticateUser(ctx context.Context, usernameOrEmail, pa
 	}
 
 	// Log successful authentication
-	us.auditService.LogUserActivity(ctx, user.ID, "USER_LOGIN", "user", user.ID.String(), "User logged in successfully")
+	if us.auditService != nil {
+		us.auditService.LogUserActivity(ctx, user.ID, "USER_LOGIN", "user", user.ID.String(), "User logged in successfully")
+	}
 
 	return user, nil
 }
@@ -304,7 +314,9 @@ func (us *UserService) ChangePassword(ctx context.Context, userID uuid.UUID, old
 	}
 
 	// Log password change
-	us.auditService.LogUserActivity(ctx, userID, "PASSWORD_CHANGED", "user", userID.String(), "Password changed successfully")
+	if us.auditService != nil {
+		us.auditService.LogUserActivity(ctx, userID, "PASSWORD_CHANGED", "user", userID.String(), "Password changed successfully")
+	}
 
 	return nil
 }
@@ -404,4 +416,9 @@ func (us *UserService) validateCreateRequest(req *models.UserCreateRequest) erro
 	}
 
 	return nil
+}
+
+// GetUserCount returns total number of users
+func (us *UserService) GetUserCount(ctx context.Context) (int64, error) {
+	return us.userRepo.Count(ctx)
 }

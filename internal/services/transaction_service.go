@@ -17,6 +17,7 @@ type TransactionService struct {
 	transactionRepo interfaces.TransactionRepository
 	balanceRepo     interfaces.BalanceRepository
 	auditService    interfaces.AuditService
+	cache           interfaces.CacheService
 	logger          *zap.Logger
 }
 
@@ -24,12 +25,14 @@ func NewTransactionService(
 	transactionRepo interfaces.TransactionRepository,
 	balanceRepo interfaces.BalanceRepository,
 	auditService interfaces.AuditService,
+	cache interfaces.CacheService,
 	logger *zap.Logger,
 ) *TransactionService {
 	return &TransactionService{
 		transactionRepo: transactionRepo,
 		balanceRepo:     balanceRepo,
 		auditService:    auditService,
+		cache:           cache,
 		logger:          logger,
 	}
 }
@@ -298,4 +301,82 @@ func (ts *TransactionService) CanPerformTransaction(ctx context.Context, account
 		return false, err
 	}
 	return balance >= amount, nil
+}
+
+// GetTransactionHistory retrieves transaction history for a user
+func (ts *TransactionService) GetTransactionHistory(ctx context.Context, userID uuid.UUID, limit, offset int, transactionType, status string) ([]*models.Transaction, error) {
+	// Create cache key
+	cacheKey := fmt.Sprintf("transactions:%s:%d:%d:%s:%s", userID.String(), limit, offset, transactionType, status)
+
+	// Try to get from cache first
+	if ts.cache != nil {
+		if cachedTransactions, err := ts.cache.GetTransactions(ctx, cacheKey); err == nil && len(cachedTransactions) > 0 {
+			ts.logger.Debug("Transaction history retrieved from cache",
+				zap.String("user_id", userID.String()),
+				zap.String("cache_key", cacheKey),
+				zap.Int("count", len(cachedTransactions)))
+			return cachedTransactions, nil
+		}
+	}
+
+	// Build query
+	query := database.GetDB().WithContext(ctx).Where("(from_user_id = ? OR to_user_id = ?)", userID, userID)
+
+	// Add filters
+	if transactionType != "" {
+		query = query.Where("type = ?", transactionType)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Add ordering and pagination
+	query = query.Order("created_at DESC").Limit(limit).Offset(offset)
+
+	var transactions []*models.Transaction
+	if err := query.Find(&transactions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get transaction history: %w", err)
+	}
+
+	// Cache the result
+	if ts.cache != nil {
+		ts.cache.SetTransactions(ctx, cacheKey, transactions, 2*time.Minute)
+		ts.logger.Debug("Transaction history cached",
+			zap.String("user_id", userID.String()),
+			zap.String("cache_key", cacheKey),
+			zap.Int("count", len(transactions)))
+	}
+
+	return transactions, nil
+}
+
+// GetTransactionByID retrieves a transaction by its ID
+func (ts *TransactionService) GetTransactionByID(ctx context.Context, transactionID uuid.UUID) (*models.Transaction, error) {
+	// Create cache key
+	cacheKey := fmt.Sprintf("transaction:%s", transactionID.String())
+
+	// Try to get from cache first
+	if ts.cache != nil {
+		if cachedTransaction, err := ts.cache.GetCachedTransaction(ctx, transactionID); err == nil && cachedTransaction != nil {
+			ts.logger.Debug("Transaction retrieved from cache",
+				zap.String("transaction_id", transactionID.String()),
+				zap.String("cache_key", cacheKey))
+			return cachedTransaction, nil
+		}
+	}
+
+	var transaction models.Transaction
+	if err := database.GetDB().WithContext(ctx).Where("id = ?", transactionID).First(&transaction).Error; err != nil {
+		return nil, fmt.Errorf("failed to get transaction: %w", err)
+	}
+
+	// Cache the result
+	if ts.cache != nil {
+		ts.cache.CacheTransaction(ctx, &transaction, 300) // 5 minutes = 300 seconds
+		ts.logger.Debug("Transaction cached",
+			zap.String("transaction_id", transactionID.String()),
+			zap.String("cache_key", cacheKey))
+	}
+
+	return &transaction, nil
 }

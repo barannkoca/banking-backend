@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/barannkoca/banking-backend/pkg/logger"
+	"github.com/barannkoca/banking-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -152,21 +153,15 @@ func ManagerAuthorizationMiddleware() gin.HandlerFunc {
 	})
 }
 
-// validateJWTToken validates JWT token and returns user info (placeholder)
+// validateJWTToken validates JWT token and returns user info
 func validateJWTToken(token string) (userID string, userRole string, err error) {
-	// TODO: Implement actual JWT validation
-	// For now, return mock data
-	if token == "valid-token" {
-		return "user123", "customer", nil
-	}
-	if token == "admin-token" {
-		return "admin123", "admin", nil
-	}
-	if token == "manager-token" {
-		return "manager123", "manager", nil
+	// Use JWT utility to validate token
+	claims, err := utils.ValidateToken(token, utils.DefaultJWTConfig())
+	if err != nil {
+		return "", "", fmt.Errorf("invalid token: %w", err)
 	}
 
-	return "", "", fmt.Errorf("invalid token")
+	return claims.UserID, claims.Role, nil
 }
 
 // isAuthenticated checks if user is authenticated

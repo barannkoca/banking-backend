@@ -50,8 +50,10 @@ clean:
 ## Stop all running instances
 stop:
 	@echo "🛑 Stopping all banking-backend processes..."
-	-pkill -f "banking-backend"
-	-pkill -f "go run cmd/server/main.go"
+	-kill $(lsof -ti:8080) 2>/dev/null || true
+	-pkill -f "banking-backend" 2>/dev/null || true
+	-pkill -f "go run cmd/server/main.go" 2>/dev/null || true
+	@echo "✅ Banking backend stopped"
 
 ##@ Database
 

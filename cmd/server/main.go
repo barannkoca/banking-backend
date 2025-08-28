@@ -7,6 +7,9 @@ import (
 	"github.com/barannkoca/banking-backend/config"
 	"github.com/barannkoca/banking-backend/internal/api"
 	"github.com/barannkoca/banking-backend/internal/database"
+	"github.com/barannkoca/banking-backend/internal/processing"
+	"github.com/barannkoca/banking-backend/internal/repository"
+	"github.com/barannkoca/banking-backend/internal/services"
 	"github.com/barannkoca/banking-backend/pkg/graceful"
 	"github.com/barannkoca/banking-backend/pkg/logger"
 	"go.uber.org/zap"
@@ -54,8 +57,35 @@ func main() {
 		)
 	}
 
+	// Initialize repositories and services
+	userRepo := repository.NewUserRepository(database.GetDB())
+	transactionRepo := repository.NewTransactionRepository(database.GetDB())
+	balanceRepo := repository.NewBalanceRepository(database.GetDB())
+
+	// Initialize Redis cache service
+	cacheService, err := services.NewRedisCacheService("localhost:6379", "", 0)
+	if err != nil {
+		log.Warn("Failed to initialize Redis cache, continuing without cache",
+			zap.Error(err),
+			zap.String("type", "cache_init_warning"),
+		)
+		cacheService = nil
+	} else {
+		log.Info("Redis cache service initialized successfully")
+	}
+
+	// Initialize audit service
+	auditService := services.NewAuditService(log)
+
+	userService := services.NewUserService(userRepo, auditService)
+	transactionService := services.NewTransactionService(transactionRepo, balanceRepo, auditService, cacheService, log)
+	balanceService := services.NewBalanceService(balanceRepo, auditService, cacheService)
+
+	// Initialize worker pool for transaction processing
+	workerPool := processing.NewWorkerPool(5, 100, log) // 5 workers, 100 job queue size
+
 	// Initialize custom router with all middleware
-	r := api.SetupRouter()
+	r := api.SetupRouter(userService, transactionService, balanceService.(*services.BalanceService), auditService, workerPool)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -67,6 +97,10 @@ func main() {
 	shutdownHandler := graceful.NewShutdownHandler(server, 30*time.Second)
 
 	// Add cleanup tasks for banking system
+	shutdownHandler.AddCleanupTask(func() error {
+		log.Info("Shutting down worker pool...")
+		return workerPool.Shutdown(30 * time.Second)
+	})
 	shutdownHandler.AddCleanupTask(graceful.CleanupTransactionQueue())
 	shutdownHandler.AddCleanupTask(graceful.CleanupAuditLogs())
 

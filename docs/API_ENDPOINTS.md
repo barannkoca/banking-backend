@@ -161,7 +161,7 @@ Authorization: Bearer <jwt_token>
 *Bu endpoint'ler authentication gerektirir.*
 
 ### POST /api/v1/transactions/credit
-Hesaba para ekler (kredi işlemi).
+Hesaba para ekler (kredi işlemi). Worker pool ile asenkron olarak işlenir.
 
 **Headers:**
 ```
@@ -171,24 +171,24 @@ Authorization: Bearer <jwt_token>
 **Request Body:**
 ```json
 {
-  "account_id": "acc_123",
   "amount": 1000.50,
-  "currency": "TRY",
-  "description": "Salary deposit"
+  "reference": "Salary deposit"
 }
 ```
 
 **Response:**
 ```json
 {
-  "message": "Credit transaction endpoint",
-  "endpoint": "POST /api/v1/transactions/credit",
-  "description": "Add money to account (credit transaction)"
+  "message": "Para yatırma işlemi başlatıldı",
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "amount": 1000.50,
+  "status": "processing",
+  "created_at": "2024-01-15T10:30:00Z"
 }
 ```
 
 ### POST /api/v1/transactions/debit
-Hesaptan para çıkarır (borç işlemi).
+Hesaptan para çıkarır (borç işlemi). Worker pool ile asenkron olarak işlenir.
 
 **Headers:**
 ```
@@ -198,24 +198,24 @@ Authorization: Bearer <jwt_token>
 **Request Body:**
 ```json
 {
-  "account_id": "acc_123",
   "amount": 250.75,
-  "currency": "TRY",
-  "description": "ATM withdrawal"
+  "reference": "ATM withdrawal"
 }
 ```
 
 **Response:**
 ```json
 {
-  "message": "Debit transaction endpoint",
-  "endpoint": "POST /api/v1/transactions/debit",
-  "description": "Remove money from account (debit transaction)"
+  "message": "Para çekme işlemi başlatıldı",
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "amount": 250.75,
+  "status": "processing",
+  "created_at": "2024-01-15T10:30:00Z"
 }
 ```
 
 ### POST /api/v1/transactions/transfer
-Hesaplar arası para transferi yapar.
+Hesaplar arası para transferi yapar. Worker pool ile asenkron olarak işlenir.
 
 **Headers:**
 ```
@@ -225,20 +225,22 @@ Authorization: Bearer <jwt_token>
 **Request Body:**
 ```json
 {
-  "from_account_id": "acc_123",
-  "to_account_id": "acc_456",
+  "to_user_id": "550e8400-e29b-41d4-a716-446655440000",
   "amount": 500.00,
-  "currency": "TRY",
-  "description": "Transfer to savings account"
+  "reference": "Transfer to savings account"
 }
 ```
 
 **Response:**
 ```json
 {
-  "message": "Transfer transaction endpoint",
-  "endpoint": "POST /api/v1/transactions/transfer",
-  "description": "Transfer money between accounts"
+  "message": "Transfer işlemi başlatıldı",
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "from_user_id": "current-user-id",
+  "to_user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "amount": 500.00,
+  "status": "processing",
+  "created_at": "2024-01-15T10:30:00Z"
 }
 ```
 
@@ -251,18 +253,32 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Query Parameters:**
-- `page`: Sayfa numarası (default: 1)
-- `limit`: Sayfa başına kayıt sayısı (default: 20)
-- `start_date`: Başlangıç tarihi (ISO 8601)
-- `end_date`: Bitiş tarihi (ISO 8601)
-- `type`: İşlem tipi (credit, debit, transfer)
+- `limit`: Sayfa başına kayıt sayısı (default: 50, max: 100)
+- `offset`: Başlangıç pozisyonu (default: 0)
+- `type`: İşlem tipi (deposit, withdraw, transfer)
+- `status`: İşlem durumu (pending, completed, failed)
 
 **Response:**
 ```json
 {
-  "message": "Transaction history endpoint",
-  "endpoint": "GET /api/v1/transactions/history",
-  "description": "Get transaction history for user"
+  "message": "İşlem geçmişi başarıyla getirildi",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "from_user_id": null,
+      "to_user_id": "user-id",
+      "amount": 1000.50,
+      "type": "deposit",
+      "status": "completed",
+      "reference": "Salary deposit",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "limit": 50,
+    "offset": 0,
+    "count": 1
+  }
 }
 ```
 
@@ -277,10 +293,17 @@ Authorization: Bearer <jwt_token>
 **Response:**
 ```json
 {
-  "message": "Get transaction by ID endpoint",
-  "endpoint": "GET /api/v1/transactions/456",
-  "description": "Retrieve specific transaction details",
-  "transaction_id": "456"
+  "message": "İşlem başarıyla getirildi",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "from_user_id": "user-id-1",
+    "to_user_id": "user-id-2",
+    "amount": 500.00,
+    "type": "transfer",
+    "status": "completed",
+    "reference": "Transfer to savings account",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
 }
 ```
 
@@ -296,15 +319,17 @@ Mevcut hesap bakiyesini getirir.
 Authorization: Bearer <jwt_token>
 ```
 
-**Query Parameters:**
-- `account_id`: Hesap ID'si (opsiyonel)
-
 **Response:**
 ```json
 {
-  "message": "Current balance endpoint",
-  "endpoint": "GET /api/v1/balances/current",
-  "description": "Get current account balance"
+  "message": "Mevcut bakiye başarıyla getirildi",
+  "data": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "current_balance": 1500.75,
+    "available_balance": 1500.75,
+    "currency": "TRY",
+    "last_updated": "2024-01-15T10:30:00Z"
+  }
 }
 ```
 
@@ -317,17 +342,36 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Query Parameters:**
-- `account_id`: Hesap ID'si
-- `start_date`: Başlangıç tarihi (ISO 8601)
-- `end_date`: Bitiş tarihi (ISO 8601)
-- `interval`: Zaman aralığı (daily, weekly, monthly)
+- `limit`: Sayfa başına kayıt sayısı (default: 50, max: 100)
+- `offset`: Başlangıç pozisyonu (default: 0)
+- `start_date`: Başlangıç tarihi (YYYY-MM-DD format)
+- `end_date`: Bitiş tarihi (YYYY-MM-DD format)
 
 **Response:**
 ```json
 {
-  "message": "Historical balance endpoint",
-  "endpoint": "GET /api/v1/balances/historical",
-  "description": "Get historical balance data"
+  "message": "Bakiye geçmişi başarıyla getirildi",
+  "data": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "history": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "user_id": "550e8400-e29b-41d4-a716-446655440000",
+        "previous_amount": 1000.00,
+        "new_amount": 1500.75,
+        "change_amount": 500.75,
+        "change_type": "BALANCE_CREDIT",
+        "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+        "created_at": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "pagination": {
+      "limit": 50,
+      "offset": 0,
+      "count": 1,
+      "total": 1
+    }
+  }
 }
 ```
 
@@ -340,15 +384,19 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Query Parameters:**
-- `account_id`: Hesap ID'si
-- `timestamp`: Zaman damgası (ISO 8601)
+- `timestamp`: Zaman damgası (RFC3339, ISO 8601, YYYY-MM-DD formatları desteklenir)
 
 **Response:**
 ```json
 {
-  "message": "Balance at time endpoint",
-  "endpoint": "GET /api/v1/balances/at-time",
-  "description": "Get account balance at specific time"
+  "message": "Belirtilen zamandaki bakiye başarıyla getirildi",
+  "data": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "balance": 1500.75,
+    "currency": "TRY",
+    "calculated": true
+  }
 }
 ```
 
