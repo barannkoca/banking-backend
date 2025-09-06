@@ -62,6 +62,12 @@ Go ile geliştirilmiş modern bankacılık backend API'si.
 - **Structured logging** - Audit trails
 - **Worker pools** - Concurrent processing
 
+### 🐳 **Containerization & DevOps**
+- **Docker** - Containerization
+- **Docker Compose** - Multi-service orchestration
+- **Multi-stage builds** - Optimized images
+- **Health checks** - Container monitoring
+
 ## 📁 Proje Yapısı
 
 ```
@@ -77,10 +83,50 @@ Go ile geliştirilmiş modern bankacılık backend API'si.
 │   └── logger/          # Loglama sistemi
 ├── docs/                # API dokümantasyonu
 ├── scripts/             # Build ve deploy scriptleri
-└── config/              # Konfigürasyon dosyaları
+├── migrations/          # Database migration dosyaları
+├── config/              # Konfigürasyon dosyaları
+├── Dockerfile           # Multi-stage Docker build
+├── docker-compose.yml   # Docker Compose konfigürasyonu
+├── .dockerignore        # Docker build optimizasyonu
+├── env.example          # Environment variables template
+└── Makefile             # Build ve development komutları
 ```
 
 ## 🚀 Kurulum
+
+### 🐳 **Docker ile Kurulum (Önerilen)**
+
+1. **Repository'yi klonlayın:**
+```bash
+git clone https://github.com/barannkoca/banking-backend.git
+cd banking-backend
+```
+
+2. **Environment dosyasını hazırlayın:**
+```bash
+cp env.example .env
+# Gerekirse .env dosyasını düzenleyin
+```
+
+3. **Docker servislerini başlatın:**
+```bash
+# Tüm servisleri başlat (PostgreSQL + Redis + App)
+./scripts/docker-run.sh
+
+# Veya manuel olarak
+docker-compose up -d
+```
+
+4. **Servisleri test edin:**
+```bash
+# API health check
+curl http://localhost:8080/health
+
+# Logları takip edin
+docker-compose logs -f
+```
+
+### 🔧 **Manuel Kurulum**
 
 1. **Repository'yi klonlayın:**
 ```bash
@@ -158,6 +204,48 @@ HTTP Server Setup implementasyonu tamamlanmıştır. Detaylar için `docs/HTTP_S
 - ✅ Role-based Access Control
 - ✅ Performance Monitoring
 - ✅ Security Logging
+
+### 🐳 Docker Setup
+
+Docker kurulumu tamamlanmıştır. Detaylar için `docs/DOCKER_SETUP.md` dosyasını inceleyin.
+
+**Docker Özellikleri:**
+- ✅ Multi-stage Dockerfile
+- ✅ Docker Compose (App + PostgreSQL + Redis)
+- ✅ Health Checks
+- ✅ Database Migration
+- ✅ Security (Non-root user)
+- ✅ Monitoring
+- ✅ Helper Scripts
+
+**Hızlı Başlangıç:**
+```bash
+# Environment hazırla
+cp env.example .env
+
+# Servisleri başlat
+./scripts/docker-run.sh
+
+# Test et
+curl http://localhost:8080/health
+```
+
+**Docker Komutları:**
+```bash
+# Build
+./scripts/docker-build.sh
+
+# Run
+./scripts/docker-run.sh
+
+# Cleanup
+./scripts/docker-cleanup.sh
+
+# Manuel kontrol
+docker-compose up -d
+docker-compose down
+docker-compose logs -f
+```
 
 ### 📡 API Endpoints
 
